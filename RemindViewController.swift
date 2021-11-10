@@ -19,7 +19,7 @@ class RemindViewController: UIViewController {
     var notes: [NoteItem] = []
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         // Do any additional setup after loading the view.
     }
     override func viewDidAppear(_ animated: Bool) {
@@ -45,40 +45,27 @@ class RemindViewController: UIViewController {
             case .success(let notes):
                 self.notes = notes.filter({$0.reminderTime != nil})
                 print("\n\n@@@@@@@@@@@@@@@@@",self.notes)
-               
+                
                 
             case .failure(let error):
                 self.showAlert(title: "Error while Fetching Notes", message: error.localizedDescription)
             }
         }
         
-        
     }
     func fetchNoteRealm(){
         RealmManager.shared.fetchNotes{ notesArray in
             self.notesRealm = notesArray.filter({$0.reminderTime != nil})
             print("\n\n@@@@@@@@@@@@@@@@@",self.notesRealm)
-            //self.ArchieveCollectionView.reloadData()
         }
     }
     @objc func onDeleteNote(_ sender: UIButton) {
         let deleteNote = notes[sender.tag]
-       noteRealm = notesRealm[sender.tag]
+        noteRealm = notesRealm[sender.tag]
         DatabaseManager.shared.deleteNote(deleteNote:deleteNote, note: noteRealm!)
         notes.remove(at: sender.tag)
-       notesRealm.remove(at:sender.tag)
+        notesRealm.remove(at:sender.tag)
         reminderCollectionView.reloadData()
-    }
-   
-    @objc func onArchievNote(_ sender: UIButton) {
-        var noteModified = notes[sender.tag]
-        var noteModifiedRealm = notesRealm[sender.tag]
-        noteModified.isArchieved =  false
-        let db = Firestore.firestore()
-        db.collection("notes").document(noteModified.noteId!).updateData(["isArchieved":false])
-        try! realmInstance.write({
-            noteModifiedRealm.isArchieved = false
-        })
     }
     
     
@@ -98,9 +85,17 @@ extension RemindViewController :UICollectionViewDelegate,UICollectionViewDataSou
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell : ReminderCollectionViewCell?
         
-            cell = collectionView.dequeueReusableCell(withReuseIdentifier: "remindCell", for: indexPath) as? ReminderCollectionViewCell
+        cell = collectionView.dequeueReusableCell(withReuseIdentifier: "remindCell", for: indexPath) as? ReminderCollectionViewCell
+        let note = notesRealm[indexPath.row]
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "dd/MM/YY hh:mm a"
+        let reminderDate = note.reminderTime
+        
         cell?.label1.text = notesRealm[indexPath.row].title
         cell?.label2.text = notesRealm[indexPath.row].note
+        cell?.label3.text = dateFormatter.string(from: reminderDate ?? Date())
+        
         cell?.onDelete.tag = indexPath.row
         cell?.onDelete.addTarget(self, action: #selector(onDeleteNote), for: .touchUpInside)
         return cell!
